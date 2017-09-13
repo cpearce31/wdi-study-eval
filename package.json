@@ -1,0 +1,32 @@
+{
+  "name": "ga-wdi-boston.node-template",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node bin/index.js"
+  },
+  "license": {
+    "software": "GNU GPLv3",
+    "content": "CC­BY­NC­SA 4.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-as-promised": "^6.0.0",
+    "eslint": "^3.19.0",
+    "eslint-config-standard": "^10.2.1",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-node": "^4.2.2",
+    "eslint-plugin-promise": "^3.5.0",
+    "eslint-plugin-standard": "^3.0.1",
+    "grunt": "^1.0.1",
+    "grunt-concurrent": "^2.3.1",
+    "grunt-eslint": "^19.0.0",
+    "grunt-jsonlint": "^1.1.0",
+    "grunt-mocha-cli": "^3.0.0",
+    "grunt-nodemon": "^0.4.2",
+    "load-grunt-config": "^0.19.2",
+    "mocha": "^3.3.0",
+    "time-grunt": "^1.4.0"
+  }
+}
