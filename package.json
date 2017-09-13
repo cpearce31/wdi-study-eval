@@ -3,13 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "node bin/index.js"
+    "start": "node bin/study-eval.js"
   },
+  "author": "Caleb Pearce",
   "license": {
     "software": "GNU GPLv3",
     "content": "CC­BY­NC­SA 4.0"
   },
-  "dependencies": {},
+  "dependencies": {
+    "csv": "^0.4.6",
+    "dotenv": "^1.2.0"
+  },
   "devDependencies": {
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
