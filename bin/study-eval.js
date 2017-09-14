@@ -4,7 +4,6 @@
 require('colors')
 require('dotenv').load()
 const https = require('follow-redirects').https
-const request = require('request')
 const prompt = require('prompt-sync')({ sigint: true })
 
 const user = process.env.GHUSER
@@ -22,10 +21,9 @@ const options = {
   hostname: 'git.generalassemb.ly',
   port: 443,
   path: `/api/v3/repos/ga-wdi-boston/${repo}/pulls?state=all&per_page=100&sort=updated&direction=desc`,
-  method: 'GET',
   auth: `${user}:${token}`,
   headers: {
-    'User-Agent': 'curl/7.38.0'
+    'User-Agent': 'node-script'
   }
 }
 
@@ -50,11 +48,11 @@ const getPulls = function (devs) {
                 github: pull.user.login.toLowerCase(),
                 url: pull.url,
                 diff_url: pull.diff_url,
-                comment_url: pull.review_comments_url,
-                body: pull.body
+                comment_url: pull.comments_url,
+                body: pull.body,
+                commented: false
               }
             })
-
           resolve(pulls)
         })
       }
@@ -138,7 +136,7 @@ const inspectDiffs = function (pulls) {
   return pulls
 }
 
-const commentAndClose = function (pulls) {
+const addComments = function (pulls) {
   pulls.forEach(pull => {
     if (!pull.useDefault) {
       console.reset()
@@ -149,12 +147,99 @@ const commentAndClose = function (pulls) {
       pull.comment = prompt('Enter a custom comment for the above PR: ')
     }
   })
+  pulls.map(pull => {
+    return new Promise((resolve, reject) => {
+      if (!pull.isLegit) {
+        resolve(pull)
+      }
+      options.path = extractPath(pull.comment_url)
+      options.method = 'POST'
+
+      console.log(options)
+      const req = https.request(options, (res) => {
+        let result = ''
+
+        res.on('data', data => {
+          result += data
+        })
+
+        if (res.statusCode !== 200) {
+          res.on('end', () => reject(result))
+        } else {
+          res.on('end', () => {
+            pull.commented = true
+            resolve(pull)
+          })
+        }
+      }).on('error', e => reject(e))
+      req.write(JSON.stringify({'body': pull.useDefault ? defaultComment : pull.comment}))
+      req.end()
+    })
+  })
+  return Promise.all(pulls)
+}
+
+const closePulls = pulls => {
+  pulls.map(pull => {
+    return new Promise((resolve, reject) => {
+      if (!pull.isLegit) {
+        resolve(pull)
+      }
+      options.path = extractPath(pull.url)
+      options.method = 'PATCH'
+
+      console.log(options)
+      const req = https.request(options, (res) => {
+        let result = ''
+
+        res.on('data', data => {
+          result += data
+        })
+
+        if (res.statusCode !== 200) {
+          res.on('end', () => reject(result))
+        } else {
+          res.on('end', () => {
+            pull.closed = true
+            resolve(pull)
+          })
+        }
+      }).on('error', e => reject(e))
+      req.write(JSON.stringify({'state': 'closed'}))
+      req.end()
+    })
+  })
+  return Promise.all(pulls)
+}
+
+const displayFinalOutput = pulls => {
+  console.reset()
+  console.log('=== STUFF TO DO BY HAND ===\n'.red)
+  console.log('The following pulls will need to be addressed manually: \n')
+  if (badPulls.length > 0) {
+    badPulls.forEach(pull => {
+      console.log(pull)
+    })
+  } else {
+    console.log('None!\n')
+  }
+  // const problemPulls = []
+  // pulls.forEach(pull => {
+  //   if (pull.isLegit && (!pull.closed || !pull.commented)) {
+  //     problemPulls.push(pull)
+  //   }
+  // })
+  // console.reset()
+  // console.log('=== STATUS ===\n'.red)
+  // console.log(problemPulls.length > 0 ? problemPulls : 'All pulls commented and closed.')
 }
 
 developersPromise
   .then(getPulls)
   .then(getDiffs)
   .then(pulls => {
-    commentAndClose(inspectDiffs(pulls))
+    return addComments(inspectDiffs(pulls))
   })
+  .then(closePulls)
+  .then(displayFinalOutput)
   .catch(console.error)
