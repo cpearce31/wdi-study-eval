@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "node bin/study-eval.js"
+    "start": "node bin/study-eval.js",
+    "pulls": "node bin/pull-requests.js",
+     "eval": "node bin/study-eval.js"
   },
   "author": "Caleb Pearce",
   "license": {

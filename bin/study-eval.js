@@ -5,17 +5,18 @@ require('colors')
 require('dotenv').load()
 const https = require('follow-redirects').https
 const prompt = require('prompt-sync')({ sigint: true })
+const developersPromise = require('../lib/get-devs')
 
 const user = process.env.GHUSER
 const token = process.env.GHTOKEN
 const defaultComment = process.env.COMMENT
 const repo = process.argv[2]
 
-console.reset = function () {
-  return process.stdout.write('\x1Bc')
-}
+console.reset = () => process.stdout.write('\x1Bc')
 
 const extractPath = url => '/' + url.split('/').slice(3).join('/')
+
+const killOnInputX = input => input !== 'x' || process.exit()
 
 const options = {
   hostname: 'git.generalassemb.ly',
@@ -61,30 +62,6 @@ const getPulls = function (devs) {
   })
 }
 
-const developersPromise = new Promise((resolve, reject) => {
-  const developers = []
-  const fs = require('fs')
-  const parse = require('csv').parse
-  const parser = parse({
-    columns: h => h.map(c => c.toLowerCase())
-  })
-
-  const input = fs.createReadStream(process.env.DEVELOPERS)
-  input.on('error', e => reject(e))
-
-  parser.on('readable', () => {
-    let record
-    while ((record = parser.read())) {
-      record.github = record.github.toLowerCase()
-      developers.push(record)
-    }
-  })
-
-  parser.on('error', e => reject(e))
-  parser.on('finish', () => resolve(developers))
-  input.pipe(parser)
-})
-
 const getDiffs = function (pulls) {
   if (pulls.length === 0) {
     console.log('No pull requests found for the developers in that CSV.')
@@ -119,40 +96,44 @@ const getDiffs = function (pulls) {
 
 const badPulls = []
 
+const printPRInfo = (pull, pulls, i) => {
+  console.reset()
+  console.log(`=== PR ${i + 1}/${pulls.length} ===\n`.red)
+  console.log('GHE Username:'.blue, pull.github)
+  console.log('PR Body:'.blue, pull.body)
+  console.log('PR diff:\n'.blue, pull.diff)
+}
+
 const inspectDiffs = function (pulls) {
-  pulls.forEach(pull => {
-    console.reset()
-    console.log('=== PR MESSAGES ===\n'.red)
-    console.log('GHE Username:'.blue, pull.github)
-    console.log('PR Body:'.blue, pull.body)
-    const useDefault = prompt('Use default comment? (y/n/x) '.yellow, 'y')
-    if (useDefault === 'x') { process.exit() }
-    pull.useDefault = useDefault === 'y'
-  })
-  pulls.forEach(pull => {
-    console.reset()
-    console.log('=== PR DIFFS ===\n'.red)
-    console.log('PR diff:\n'.blue, pull.diff)
-    const isLegit = prompt('Is this a reasonable response? (y/n/x) '.yellow, 'y')
-    if (isLegit === 'x') { process.exit() }
-    pull.isLegit = isLegit === 'y'
-    if (!pull.isLegit) { badPulls.push(pull) }
-  })
+  for (let i = 0; i < pulls.length; i++) {
+    const pull = pulls[i]
+    printPRInfo(pull, pulls, i)
+    const isLegit = prompt('Is this a reasonable response? (y/n/x/back) '.yellow, 'y')
+    killOnInputX(isLegit)
+    if (isLegit === 'y') {
+      pull.isLegit = true
+      const useDefault = prompt('Use default comment? (y/n/x/back) '.yellow, 'y')
+      killOnInputX(useDefault)
+      if (useDefault === 'back') {
+        i -= 2
+        continue
+      }
+      pull.useDefault = useDefault === 'y'
+      if (!pull.useDefault) {
+        pull.comment = prompt('Enter a custom comment for the above PR: '.yellow)
+      }
+    } else if (isLegit === 'back') {
+      i -= 2
+      continue
+    } else {
+      badPulls.push(pull)
+    }
+  }
   return pulls
 }
 
 const addComments = function (pulls) {
-  pulls.forEach(pull => {
-    if (!pull.useDefault) {
-      console.reset()
-      console.log('=== CUSTOM COMMENTS ===\n'.red)
-      console.log('GHE Username:'.blue, pull.github)
-      console.log('PR Body:'.blue, pull.body)
-      console.log('PR diff:\n'.blue, pull.diff)
-      pull.comment = prompt('Enter a custom comment for the above PR: '.yellow)
-    }
-  })
-  const commentedPulls = pulls.map(pull => {
+  return Promise.all(pulls.map(pull => {
     return new Promise((resolve, reject) => {
       if (!pull.isLegit) {
         resolve(pull)
@@ -179,8 +160,7 @@ const addComments = function (pulls) {
         req.end()
       }
     })
-  })
-  return Promise.all(commentedPulls).catch(console.error)
+  })).catch(console.log)
 }
 
 const closePulls = pulls => {
@@ -221,7 +201,10 @@ const displayFinalOutput = pulls => {
   console.log('The following pulls will need to be addressed manually: \n')
   if (badPulls.length > 0) {
     badPulls.forEach(pull => {
-      console.log('Marked as an insufficent response:', pull)
+      console.log('Marked as an insufficent response:', {
+        github: pull.github,
+        url: pull.url
+      })
     })
   } else {
     console.log('None!\n')
@@ -233,7 +216,7 @@ const displayFinalOutput = pulls => {
     }
   })
   console.log('\n=== STATUS ===\n'.red)
-  console.log(problemPulls.length > 0 ? problemPulls : 'All pulls commented and closed.\n')
+  console.log(problemPulls.length > 0 ? problemPulls : 'All approved pulls commented and closed.\n')
 }
 
 developersPromise
