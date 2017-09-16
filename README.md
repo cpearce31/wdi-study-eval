@@ -19,29 +19,33 @@ COMMENT=Nice job!
 
 ## Use
 
-Run this script with `npm start <name-of-study`.
+Run this script with `npm run eval < name-of-study >`.
 
-If you've configured your `.env` and CSV correctly, you'll then see the PR
-comment for each pull request. On this pass through, you're just looking for
-questions or 1:1 requests. If the developer's PR comment needs more than your
-default response, press `n` and hit enter. You'll be able to add a more detailed
-comment later. Otherwise, press `y` and hit enter to use the default comment.
-You can kill the process by responding `x`. No comments will be made and no PRs
-will be closed.
+If you've configured your `.env` and CSV correctly, you'll see the GH handle,
+comments, and diff for each PR. You'll be prompted first to say whether the diff
+looks like a reasonable attempt at responding to the study. Type `y` if it does,
+`n` if it doesn't, `x` to kill the process (and not post any comments or close
+any PRs) or `back` to return to the last PR in case you made a mistake.
 
-Then, you'll see the diff for each PR. Respond `y` if it's a reasonable attempt
-at answering the questions, or `n` if not. If you respond `n`, you'll need to
-address those crappy PRs in real life. If you respond 'y', and you chose to use
-the default comment for that PR, it will be closed, and the default comment will
-be added.
+If you answered `y` above, you'll be asked whether you'd like to use the default
+comment, which is whatever the `COMMENT` variable in your `.env` is set to. this
+would probably be something like "Nice work!" or "+1" (the thumbs up emoji). You
+have the same options here as above. If you enter something other than `y`, `n`,
+`x`, or `back` to either of these, it will default to `y`.
 
-For any PRs that you chose not to use the default comment for, you'll be shown
-the comment and the diff, and asked to leave a custom comment. Then, the PR will
-be closed and your comment added.
+If you indicated that you didn't want to use the default comment, you'll be
+prompted to enter a custom comment.
 
-Finally, you'll be shown a list of PRs that need to be addressed in real life,
-and a message confirming that all of the API requests to close and comment were
-succesful.
+Once you've gone through all the PRs, the script will comment and close all the
+"reasonable" PRs, and give you a list of PRs that need to be addressed by hand.
+It will also let you know whether all the API requests went through succesfully.
+
+For covenience, and because they share some code, this repo also contains a copy
+of Antony Donovan's pull request script, found [here](https://git.generalassemb.ly/wdi-bos-faculty/pull-requests). You can run
+that script with `npm run pulls < name-of-repo >`. It uses the same `.env` and
+CSV directory.
+
+
 
 ## [License](LICENSE)
 
