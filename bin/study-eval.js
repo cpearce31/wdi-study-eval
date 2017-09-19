@@ -4,7 +4,9 @@
 require('colors')
 require('dotenv').load()
 const https = require('follow-redirects').https
-const prompt = require('prompt-sync')({ sigint: true })
+const readline = require('readline')
+const rl = readline.createInterface({input: process.stdin, output: process.stdout})
+
 const developersPromise = require('../lib/get-devs')
 
 const user = process.env.GHUSER
@@ -105,31 +107,38 @@ const printPRInfo = (pull, pulls, i) => {
 }
 
 const inspectDiffs = function (pulls) {
-  for (let i = 0; i < pulls.length; i++) {
-    const pull = pulls[i]
-    printPRInfo(pull, pulls, i)
-    const isLegit = prompt('Is this a reasonable response? (y/n/x/back) '.yellow, 'y')
-    killOnInputX(isLegit)
-    if (isLegit === 'y') {
-      pull.isLegit = true
-      const useDefault = prompt('Use default comment? (y/n/x/back) '.yellow, 'y')
-      killOnInputX(useDefault)
-      if (useDefault === 'back') {
-        i -= 2
-        continue
-      }
-      pull.useDefault = useDefault === 'y'
-      if (!pull.useDefault) {
-        pull.comment = prompt('Enter a custom comment for the above PR: '.yellow)
-      }
-    } else if (isLegit === 'back') {
-      i -= 2
-      continue
-    } else {
-      badPulls.push(pull)
-    }
-  }
-  return pulls
+  return Promise.all(pulls.map((pull, i) => {
+    return new Promise((resolve, reject) => {
+      printPRInfo(pull, pulls, i)
+      rl.question('Is this a reasonable response? (y/n/x/back) '.yellow, answer => {
+        killOnInputX(answer)
+        if (answer === 'y') {
+          pull.isLegit = true
+          rl.question('Use default comment? (y/n/x/back) '.yellow, answer => {
+            killOnInputX(answer)
+            if (answer === 'back') {
+              i -= 2
+              return
+            }
+            pull.useDefault = answer === 'y'
+            if (!pull.useDefault) {
+              rl.question('Enter a custom comment for the above PR: '.yellow, answer => {
+                pull.comment = answer
+                resolve(pull)
+              })
+            } else {
+              resolve(pull)
+            }
+          })
+        } else if (answer === 'back') {
+          i -= 2
+        } else {
+          badPulls.push(pull)
+          resolve(pull)
+        }
+      })
+    })
+  }))
 }
 
 const addComments = function (pulls) {
@@ -222,11 +231,8 @@ const displayFinalOutput = pulls => {
 developersPromise
   .then(getPulls)
   .then(getDiffs)
-  .then(pulls => {
-    return addComments(inspectDiffs(pulls)).catch(problem => {
-      console.log('Promise rejected after addComments', problem)
-    })
-  })
+  .then(inspectDiffs)
+  .then(addComments)
   .then(closePulls)
   .then(displayFinalOutput)
   .catch(problem => console.log('Promise rejected at end of chain', console.log(problem)))
