@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node bin/study-eval.js",
     "pulls": "node bin/pull-requests.js",
-     "eval": "node bin/study-eval.js"
+    "eval": "node bin/study-eval.js"
   },
   "author": "Caleb Pearce",
   "license": {
@@ -16,9 +16,7 @@
     "colors": "^1.1.2",
     "csv": "^0.4.6",
     "dotenv": "^1.2.0",
-    "follow-redirects": "^1.2.4",
-    "prompt-sync": "^4.1.5",
-    "request": "^2.81.0"
+    "follow-redirects": "^1.2.4"
   },
   "devDependencies": {
     "chai": "^3.5.0",
