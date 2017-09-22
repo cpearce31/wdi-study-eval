@@ -114,9 +114,7 @@ const inspectDiffs = async function (pulls) {
     const pullPromise = new Promise((resolve, reject) => {
       const pull = pulls[i]
       printPRInfo(pull, pulls, i)
-      console.log('ABOUT TO CALL RL')
       rl.question('Is this a reasonable response? (y/n/x/back) '.yellow, answer => {
-        console.log('INSIDE RL QUESTION CALLBACK')
         killOnInputX(answer)
         if (answer === 'y') {
           pull.isLegit = true
