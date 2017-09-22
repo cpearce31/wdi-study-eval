@@ -3,65 +3,36 @@ REPO=$2
 COHORT=$3
 GITHUB=$4
 TEMPLATE=$5
+RESULTSDIR=$6
 
-echo "You entered:"
+echo "Building directory with these arguments:"
 echo "URL": $URL
 echo "REPO": $REPO
 echo "COHORT": $COHORT
 echo "GITHUB": $GITHUB
-echo "Is this correct? (y/n)"
 
-read CONFIRM
+cd $RESULTSDIR/$COHORT/$REPO
 
-if [ $CONFIRM = "y" ]; then
+mkdir $GITHUB
+cd $GITHUB
 
-  if [ -d "$COHORT" ]; then
-    cd $COHORT/$REPO
-    if [ ! -d all-green ]; then
-      mkdir all-green
-      mkdir not-all-green
-    fi
-    cd $GITHUB
-  else
-    mkdir $COHORT
-    cd $COHORT
+git clone $URL
 
-    mkdir $REPO
-    cd $REPO
+cd $REPO
+git checkout response
 
-    mkdir $GITHUB
-    mkdir all-green
-    mkdir not-all-green
-    cd $GITHUB
-  fi
+if [ $TEMPLATE = "node" ]; then
+  npm install
 
-  rm -rf $REPO
-  git clone $URL
+  echo "template did equal node"
 
-  cd $REPO
-  git checkout response
+  RESULT=`grunt test`
 
-  if [ $TEMPLATE = "node" ]; then
-    npm install
+  echo $RESULT
 
-    RESULT=`grunt test`
-
-    echo `echo $RESULT | grep failing\|Error\|error`
-    GREPEXIT=$?
-
-    if [ $GREPEXIT = 0 ]; then
-      touch ../../not-all-green/$GITHUB.txt
-      grunt test > ../../not-all-green/$GITHUB.txt
-    elif [ $GREPEXIT = 1 ]; then
-      touch ../../all-green/$GITHUB.txt
-      grunt test > ../../all-green/$GITHUB.txt
-    else
-      echo $'grep barfed.'
-    fi
-  fi
+  touch ../../$GITHUB.txt
+  printf $RESULT > ../../$GITHUB.txt
 fi
 
 cd ../..
 rm -rf $GITHUB
-
-exit 1

@@ -1,9 +1,9 @@
 {
-  "name": "ga-wdi-boston.node-template",
+  "name": "evaluater",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "node bin/study-eval.js",
+    "tests": "node bin/test-runner.js",
     "pulls": "node bin/pull-requests.js",
     "eval": "node bin/study-eval.js"
   },

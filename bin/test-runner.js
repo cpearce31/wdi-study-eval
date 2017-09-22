@@ -1,18 +1,18 @@
+#!/usr/bin/env node
 'use strict'
 
+require('colors')
+require('dotenv').load()
 const https = require('follow-redirects').https
 const exec = require('child_process').exec
-require('dotenv').load()
-
 const developersPromise = require('../lib/get-devs')
 
 const user = process.env.GHUSER
 const token = process.env.GHTOKEN
-const cohort = process.env.DEVELOPERS.replace(/csv|[^A-Za-z0-9]/g)
 const repo = process.argv[2]
 const template = process.argv[3]
-
-const baseDir = __dirname.split('/').slice(0, -1).join('/')
+const cohort = process.env.DEVELOPERS.replace(/csv|[^a-z0-9]/g, '')
+const resultsDir = process.env.RESULTSDIR
 
 const options = {
   hostname: 'git.generalassemb.ly',
@@ -38,13 +38,8 @@ const getPulls = function (devs) {
       } else {
         res.on('end', () => {
           const pulls = JSON.parse(result)
-          .filter(pull => pull.state === 'open' &&
-                  devs.some(dev => dev.github === pull.user.login.toLowerCase()))
-          .map(pull => {
-            return {
-              github: pull.login
-            }
-          })
+            .filter(pull => pull.state === 'open' &&
+                    devs.some(dev => dev.github === pull.user.login.toLowerCase()))
           resolve(pulls)
         })
       }
@@ -53,17 +48,24 @@ const getPulls = function (devs) {
 }
 
 const runTests = function (pulls) {
-  pulls.forEach(pull => {
-    const ssh = `https://git.generalassemb.ly/${pull.github}/${repo}.git`
-    exec(`sh ${baseDir}/lib/sephamore.sh ${ssh} ${repo} ${cohort} ${pull.github} ${template}`,
-    (console.log(`=== finished ${pull.github}`))
-    )
+  console.log('Setting up test directories...'.yellow)
+  exec(`sh lib/sephamore-setup.sh ${repo} ${cohort} ${resultsDir}`, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`exec error: ${error}`)
+    }
+    console.log(stdout)
+    pulls.forEach(pull => {
+      exec(`sh lib/sephamore.sh https://git.generalassemb.ly/${pull.user.login}/${repo}.git ${repo} ${cohort} ${pull.user.login} ${template} ${resultsDir}`, (error, stdout, stderr) => {
+        console.log(`Finshed build and tests for ${pull.user.login}:`.yellow)
+        console.log(stdout)
+        if (error) {
+          console.error(`exec error: ${error}`)
+        }
+      })
+    })
   })
 }
 
-// https://git.generalassemb.ly/bradleyden/ember-study.git
+// runTests([{login: 'foobar'}])
 
-developersPromise
-.then(getPulls)
-.then(console.log)
-.then(runTests)
+developersPromise.then(getPulls).then(runTests).catch(console.log)

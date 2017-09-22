@@ -40,7 +40,7 @@ Once you've gone through all the PRs, the script will comment and close all the
 "reasonable" PRs, and give you a list of PRs that need to be addressed by hand.
 It will also let you know whether all the API requests went through succesfully.
 
-For covenience, and because they share some code, this repo also contains a copy
+For convenience, and because they share some code, this repo also contains a copy
 of Antony Donovan's pull request script, found [here](https://git.generalassemb.ly/wdi-bos-faculty/pull-requests). You can run
 that script with `npm run pulls < name-of-repo >`. It uses the same `.env` and
 CSV directory.
