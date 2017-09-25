@@ -1,38 +1,17 @@
-URL=$1
-REPO=$2
-COHORT=$3
-GITHUB=$4
-TEMPLATE=$5
-RESULTSDIR=$6
+REPO=$1
+COHORT=$2
+GITHUB=$3
+TEMPLATE=$4
+RESULTSDIR=$5
 
-echo "Building directory with these arguments:"
-echo "URL": $URL
-echo "REPO": $REPO
-echo "COHORT": $COHORT
-echo "GITHUB": $GITHUB
-
-cd $RESULTSDIR/$COHORT/$REPO
-
-mkdir $GITHUB
-cd $GITHUB
-
-git clone $URL
-
-cd $REPO
-git checkout response
+cd $RESULTSDIR/$COHORT/$REPO/$REPO
 
 if [ $TEMPLATE = "node" ]; then
-  npm install
-
-  echo "template did equal node"
-
-  RESULT=`grunt test`
-
-  echo $RESULT
-
-  touch ../../$GITHUB.txt
-  printf $RESULT > ../../$GITHUB.txt
+  RESULT="$(grunt test)"
+elif [ $TEMPLATE = "ruby"]; then
+  RESULT="$(bin/rake test)"
 fi
 
-cd ../..
-rm -rf $GITHUB
+touch ../$GITHUB.txt
+
+echo "$RESULT" > ../$GITHUB.txt

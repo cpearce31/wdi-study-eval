@@ -3,6 +3,7 @@
 
 require('colors')
 require('dotenv').load()
+const fs = require('fs')
 const https = require('follow-redirects').https
 const exec = require('child_process').exec
 const developersPromise = require('../lib/get-devs')
@@ -13,6 +14,8 @@ const repo = process.argv[2]
 const template = process.argv[3]
 const cohort = process.env.DEVELOPERS.replace(/csv|[^a-z0-9]/g, '')
 const resultsDir = process.env.RESULTSDIR
+const repoUrl = `https://git.generalassemb.ly/ga-wdi-boston/${repo}`
+const fileName = template === 'node' ? 'diagnostic.js' : 'diagnostic.rb'
 
 const options = {
   hostname: 'git.generalassemb.ly',
@@ -47,25 +50,68 @@ const getPulls = function (devs) {
   })
 }
 
-const runTests = function (pulls) {
-  console.log('Setting up test directories...'.yellow)
-  exec(`sh lib/sephamore-setup.sh ${repo} ${cohort} ${resultsDir}`, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`exec error: ${error}`)
-    }
-    console.log(stdout)
-    pulls.forEach(pull => {
-      exec(`sh lib/sephamore.sh https://git.generalassemb.ly/${pull.user.login}/${repo}.git ${repo} ${cohort} ${pull.user.login} ${template} ${resultsDir}`, (error, stdout, stderr) => {
-        console.log(`Finshed build and tests for ${pull.user.login}:`.yellow)
-        console.log(stdout)
+const setupDir = pulls => {
+  return new Promise((resolve, reject) => {
+    exec('sh lib/sephamore-setup.sh' + ' ' +
+      repo + ' ' +
+      cohort + ' ' +
+      resultsDir + ' ' +
+      template + ' ' +
+      repoUrl,
+      (error, stdout, stderr) => {
         if (error) {
-          console.error(`exec error: ${error}`)
+          reject(error)
         }
+        console.log(`cloned repository ${repo}`.yellow)
+        console.log('installing dependencies:'.yellow, stdout)
+        resolve(pulls)
       })
-    })
   })
 }
 
-// runTests([{login: 'foobar'}])
+const runTests = pulls => {
+  return Promise.all(pulls.map(pull => {
+    return new Promise((resolve, reject) => {
+      options.path = `/${pull.user.login}/${repo}/raw/${pull.head.sha}/lib/${fileName}`
+      https.get(options, (res) => {
+        let result = ''
 
-developersPromise.then(getPulls).then(runTests).catch(console.log)
+        res.on('data', data => {
+          result += data
+        })
+
+        if (res.statusCode !== 200) {
+          res.on('end', () => reject(result))
+        } else {
+          res.on('end', () => {
+            const diagnosticPath = `${resultsDir}/${cohort}/${repo}/${repo}/lib/${fileName}`
+            fs.writeFile(diagnosticPath, result, () => {
+              exec(`sh lib/sephamore.sh ${repo} ${cohort} ${pull.user.login} ${template} ${resultsDir}`, (error, stdout, stderr) => {
+                if (error) {
+                  reject(error)
+                }
+                console.log(`Tests run, results saved for ${pull.user.login}`)
+                resolve(pull)
+              })
+            })
+          })
+        }
+      }).on('error', e => reject(e))
+    })
+  }))
+}
+
+const cleanUp = pulls => {
+  exec(`rm -rf ${resultsDir}/${cohort}/${repo}/${repo}`, () => {
+    console.log('\nAll tests complete, testing directory removed.'.yellow)
+  })
+}
+
+developersPromise
+  .then(getPulls)
+  .then(setupDir)
+  .then(runTests)
+  .then(cleanUp)
+  .catch(problem => {
+    console.log(`Rejection caught at end of chain: ${problem}`)
+  })
