@@ -69,9 +69,10 @@ const setupDir = pulls => {
   })
 }
 
-const runTests = pulls => {
-  return Promise.all(pulls.map(pull => {
-    return new Promise((resolve, reject) => {
+const runTests = async function (pulls) {
+  for (let i = 0; i < pulls.length; i++) {
+    const pull = pulls[i]
+    const testPromise = new Promise((resolve, reject) => {
       options.path = `/${pull.user.login}/${repo}/raw/${pull.head.sha}/lib/${fileName}`
       https.get(options, (res) => {
         let result = ''
@@ -98,7 +99,9 @@ const runTests = pulls => {
         }
       }).on('error', e => reject(e))
     })
-  }))
+    await testPromise
+  }
+  Promise.resolve()
 }
 
 const cleanUp = pulls => {

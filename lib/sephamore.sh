@@ -7,11 +7,13 @@ RESULTSDIR=$5
 cd $RESULTSDIR/$COHORT/$REPO/$REPO
 
 if [ $TEMPLATE = "node" ]; then
-  RESULT="$(grunt test)"
+  RESULT="$(timeout 15s grunt test)"
 elif [ $TEMPLATE = "ruby"]; then
-  RESULT="$(bin/rake test)"
+  RESULT="$(timout 15s bin/rake test)"
 fi
 
 touch ../$GITHUB.txt
 
-echo "$RESULT" > ../$GITHUB.txt
+HEADER="=== $GITHUB ===\n\n"
+
+echo "$HEADER$RESULT\n" > ../$GITHUB.txt
