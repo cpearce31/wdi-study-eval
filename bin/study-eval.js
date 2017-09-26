@@ -21,8 +21,6 @@ console.reset = () => process.stdout.write('\x1Bc')
 
 const extractPath = url => '/' + url.split('/').slice(3).join('/')
 
-const killOnInputX = input => input !== 'x' || process.exit()
-
 const options = {
   hostname: 'git.generalassemb.ly',
   port: 443,
@@ -109,43 +107,53 @@ const printPRInfo = (pull, pulls, i) => {
   console.log('PR diff:\n'.blue, pull.diff)
 }
 
+const ask = question => new Promise((resolve, reject) => {
+  rl.question(question, answer => resolve(answer))
+})
+
 const inspectDiffs = async function (pulls) {
-  for (let i = 0; i < pulls.length; i++) {
-    const pullPromise = new Promise((resolve, reject) => {
-      const pull = pulls[i]
-      printPRInfo(pull, pulls, i)
-      rl.question('Is this a reasonable response? (y/n/x/back) '.yellow, answer => {
-        killOnInputX(answer)
-        if (answer === 'y') {
-          pull.isLegit = true
-          rl.question('Use default comment? (y/n/x/back) '.yellow, answer => {
-            killOnInputX(answer)
-            if (answer === 'back' && i > 0) {
-              i -= 2
-              resolve(pulls)
-            }
-            if (answer === 'y') {
-              pull.useDefault = true
-              resolve(pulls)
-            } else {
-              rl.question('Enter a custom comment for the above PR: '.yellow, answer => {
-                pull.comment = answer
-                resolve(pulls)
-              })
-            }
-          })
-        } else if (answer === 'back' && i > 0) {
-          i -= 2
-          resolve(pulls)
-        } else if (answer === 'back' && i === 0) {
-          inspectDiffs(pulls)
-        } else {
-          badPulls.push(pulls)
-          resolve(pulls)
-        }
-      })
-    })
-    await pullPromise
+  let i
+
+  const handleInputs = input => {
+    if (input === 'x') {
+      process.exit()
+    } else if (input === 'back' && i > 0) {
+      i -= 2
+    } else if (input !== 'n' && input !== 'y') {
+      i -= 1
+    }
+  }
+
+  for (i = 0; i < pulls.length; i++) {
+    const pull = pulls[i]
+    printPRInfo(pull, pulls, i)
+
+    const isLegit = await ask('Close and comment this PR? (y/n/x/back): '.yellow)
+    handleInputs(isLegit)
+
+    if (isLegit === 'y') {
+      pull.isLegit = true
+    } else if (isLegit === 'n') {
+      pull.isLegit = false
+      badPulls.push(pull)
+      continue
+    } else {
+      continue
+    }
+
+    const useDefault = await ask('Use default comment? (y/n/x/back): '.yellow)
+    handleInputs(useDefault)
+
+    if (useDefault === 'y') {
+      pull.useDefault = true
+      continue
+    } else if (useDefault === 'n') {
+      pull.useDefault = false
+    } else {
+      continue
+    }
+
+    pull.comment = await ask('Enter a custom comment for this PR: '.yellow)
   }
   return pulls
 }
