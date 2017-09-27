@@ -15,7 +15,7 @@ const template = process.argv[3]
 const cohort = process.env.DEVELOPERS.replace(/csv|[^a-z0-9]/g, '')
 const resultsDir = process.env.RESULTSDIR
 const repoUrl = `https://git.generalassemb.ly/ga-wdi-boston/${repo}`
-const fileName = template === 'node' ? 'diagnostic.js' : 'diagnostic.rb'
+const fileName = repo.split('-').pop() + (template === 'node' ? '.js' : '.rb')
 
 const options = {
   hostname: 'git.generalassemb.ly',
@@ -63,7 +63,7 @@ const setupDir = pulls => {
           reject(error)
         }
         console.log(`cloned repository ${repo}`.yellow)
-        console.log('installing dependencies:'.yellow, stdout)
+        console.log('installing dependencies...\n'.yellow)
         resolve(pulls)
       })
   })
@@ -87,7 +87,7 @@ const runTests = async function (pulls) {
           res.on('end', () => {
             const diagnosticPath = `${resultsDir}/${cohort}/${repo}/${repo}/lib/${fileName}`
             fs.writeFile(diagnosticPath, result, () => {
-              exec(`sh lib/sephamore.sh ${repo} ${cohort} ${pull.user.login} ${template} ${resultsDir}`, (error, stdout, stderr) => {
+              exec(`sh lib/sephamore.sh ${repo} ${cohort} ${pull.user.login.toLowerCase()} ${template} ${resultsDir}`, (error, stdout, stderr) => {
                 if (error) {
                   reject(error)
                 }

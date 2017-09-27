@@ -3,6 +3,7 @@
 
 require('colors')
 require('dotenv').load()
+const fs = require('fs')
 const https = require('follow-redirects').https
 const readline = require('readline')
 const rl = readline.createInterface({
@@ -15,6 +16,8 @@ const developersPromise = require('../lib/get-devs')
 const user = process.env.GHUSER
 const token = process.env.GHTOKEN
 const defaultComment = process.env.COMMENT
+const resultsDir = process.env.RESULTSDIR
+const cohort = process.env.DEVELOPERS.replace(/csv|[^a-z0-9]/g, '')
 const repo = process.argv[2]
 
 console.reset = () => process.stdout.write('\x1Bc')
@@ -104,12 +107,44 @@ const printPRInfo = (pull, pulls, i) => {
   console.log(`=== PR ${i + 1}/${pulls.length} ===\n`.red)
   console.log('GHE Username:'.blue, pull.github)
   console.log('PR Body:'.blue, pull.body)
+  if (pull.testResults && !pull.testsAreBorked) {
+    console.log('Tests:'.blue, `${pull.passing} passing`, `${pull.failing} failing`)
+  } else if (pull.testsAreBorked) {
+    console.log('Tests:'.blue, 'failed')
+  }
   console.log('PR diff:\n'.blue, pull.diff)
 }
 
 const ask = question => new Promise((resolve, reject) => {
   rl.question(question, answer => resolve(answer))
 })
+
+const checkTests = async function (pulls) {
+  pulls.forEach(pull => {
+    const testPath = `${resultsDir}/${cohort}/${repo}/${pull.github}.txt`
+
+    if (fs.existsSync(testPath)) {
+      pull.testResults = fs.readFileSync(testPath, 'utf8')
+
+      if (/mochacli/.test(pull.testResults) &&
+          /passing|failing/.test(pull.testResults)) {
+        const pRegexArray = /(\d+) passing/.exec(pull.testResults)
+        const fRegexArray = /(\d+) failing/.exec(pull.testResults)
+        pull.passing = pRegexArray ? pRegexArray[1] : 'fail'
+        pull.failing = fRegexArray ? fRegexArray[1] : '0'
+      } else if (/rspec/.test(pull.testResults) &&
+                 /examples/.test(pull.testResults)) {
+        const totalTests = /(\d+) examples/.exec(pull.testResults)[1]
+        const fRegexArray = /(\d+) failures/.exec(pull.testResults)
+        pull.failing = fRegexArray ? fRegexArray[1] : 0
+        pull.passing = +totalTests - +pull.failing
+      } else {
+        pull.testsAreBorked = true
+      }
+    }
+  })
+  return Promise.resolve(pulls)
+}
 
 const inspectDiffs = async function (pulls) {
   let i
@@ -222,7 +257,7 @@ const closePulls = pulls => {
 }
 
 const displayFinalOutput = pulls => {
-  console.reset()
+  // console.reset()
   console.log('=== STUFF TO DO BY HAND ===\n'.red)
   console.log('The following pulls will need to be addressed manually: \n')
   if (badPulls.length > 0) {
@@ -249,6 +284,7 @@ const displayFinalOutput = pulls => {
 developersPromise
   .then(getPulls)
   .then(getDiffs)
+  .then(checkTests)
   .then(inspectDiffs)
   .then(addComments)
   .then(closePulls)
