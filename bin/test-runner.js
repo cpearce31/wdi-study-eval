@@ -5,17 +5,20 @@ require('colors')
 require('dotenv').load()
 const fs = require('fs')
 const https = require('follow-redirects').https
-const exec = require('child_process').exec
+const child = require('child_process')
+const exec = child.exec
+const execFile = child.execFile
 const developersPromise = require('../lib/get-devs')
+
+let extension
+let fileName
 
 const user = process.env.GHUSER
 const token = process.env.GHTOKEN
 const repo = process.argv[2]
-const template = process.argv[3]
 const cohort = process.env.DEVELOPERS.replace(/csv|[^a-z0-9]/g, '')
 const resultsDir = process.env.RESULTSDIR
 const repoUrl = `https://git.generalassemb.ly/ga-wdi-boston/${repo}`
-const fileName = repo.split('-').pop() + (template === 'node' ? '.js' : '.rb')
 
 const options = {
   hostname: 'git.generalassemb.ly',
@@ -56,7 +59,6 @@ const setupDir = pulls => {
       repo + ' ' +
       cohort + ' ' +
       resultsDir + ' ' +
-      template + ' ' +
       repoUrl,
       (error, stdout, stderr) => {
         if (error) {
@@ -64,6 +66,15 @@ const setupDir = pulls => {
         }
         console.log(`cloned repository ${repo}`.yellow)
         console.log('installing dependencies...\n'.yellow)
+        if (stdout === 'fail') {
+          console.log('Build failed. This could be caused by a bad dependency manifest, or because you do not have npm or bundler installed. Or it could be a bug in this script.'.red)
+          process.exit()
+        } else {
+          extension = stdout.trim()
+          repo === 'js-reference-types-practice'
+          ? fileName = 'mbta.js'
+          : fileName = repo.split('-').pop() + '.' + extension
+        }
         resolve(pulls)
       })
   })
@@ -82,14 +93,14 @@ const runTests = async function (pulls) {
         })
 
         if (res.statusCode !== 200) {
-          res.on('end', () => reject(result))
+          res.on('end', () => reject('error getting the raw file'))
         } else {
           res.on('end', () => {
             const diagnosticPath = `${resultsDir}/${cohort}/${repo}/${repo}/lib/${fileName}`
             fs.writeFile(diagnosticPath, result, () => {
-              exec(`sh lib/sephamore.sh ${repo} ${cohort} ${pull.user.login.toLowerCase()} ${template} ${resultsDir}`, (error, stdout, stderr) => {
+              execFile('lib/sephamore.sh', [repo, cohort, pull.user.login.toLowerCase(), extension, resultsDir], (error, stdout, stderr) => {
                 if (error) {
-                  reject(error)
+                  reject('exec error')
                 }
                 console.log(`Tests run, results saved for ${pull.user.login}`)
                 resolve(pull)
@@ -116,5 +127,5 @@ developersPromise
   .then(runTests)
   .then(cleanUp)
   .catch(problem => {
-    console.log(`Rejection caught at end of chain: ${problem}`)
+    console.log(`Promise rejected because: ${problem}`)
   })
