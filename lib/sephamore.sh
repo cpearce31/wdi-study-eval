@@ -10,11 +10,11 @@ HEADER="=== $GITHUB ===\n\n"
 touch ../$GITHUB.txt
 
 if [ $TEMPLATE = "js" ]; then
-  RESULT="$(timeout 15s grunt test)"
+  RESULT="$(grunt test)"
   echo "$HEADER$RESULT\n" > ../$GITHUB.txt
 fi
 
 if [ $TEMPLATE = "rb" ]; then
-  RESULT="$(timeout 15s bundle exec rake test)"
+  RESULT="$(bundle exec rake test)"
   echo "$HEADER$RESULT\n" > ../$GITHUB.txt
 fi
