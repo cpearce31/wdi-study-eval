@@ -3,7 +3,8 @@
 ## Setup
 
 1. Clone this repo.
-1. `npm install`
+1. Run `npm install`
+1. Run `nvm install v8.0.0`.
 1. Add a CSV file to the `csv` directory for the cohort whose study you are
 evaluating. See `020.csv` for an example.
 1. Create a `.env` file in the root of this repository. It should have four
@@ -14,7 +15,7 @@ variables, `GHUSER`, `GHTOKEN`, `DEVELOPERS`,`COMMENT`, and `RESULTSDIR`.
 - `DEVELOPERS` is the path to the CSV you currently want to use
 - `COMMENT` is the comment that will be left on PRs if you choose the 'use
 default comment' option on a PR
--`RESULTSDIR` is the absolute path to an empty directory anywhere on your
+- `RESULTSDIR` is the absolute path to an empty directory anywhere on your
 computer (preferably not in a git repository) that will contain the results
 of tests run by these scripts
 
