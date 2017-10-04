@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "tests": ". $NVM_DIR/nvm.sh&&nvm use v8.0.0&&node bin/test-runner.js",
-    "pulls": ". $NVM_DIR/nvm.sh&&nvm use v8.0.0&&node bin/pull-requests.js",
-    "eval": "node bin/study-eval.js"
+    "pulls": "node bin/pull-requests.js",
+    "eval": ". $NVM_DIR/nvm.sh&&nvm use v8.0.0&&nvm use v8.0.0&&node bin/study-eval.js"
   },
   "author": "Caleb Pearce",
   "license": {
