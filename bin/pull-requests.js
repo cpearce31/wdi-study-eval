@@ -1,5 +1,12 @@
 'use strict'
 
+// apparently, node has only four service workers for resolving
+// DNS info by default. If those DNS queries are taking a long
+// time, DNS resolution will block and node will barf.
+// This can happen on slow computers in the main loop of this
+// script. The following increases that limit from 4 to 128.
+process.env.UV_THREADPOOL_SIZE = 128
+
 const missingFromOtherList = require('../lib/missing-from-other-list')
 
 require('dotenv').load()
