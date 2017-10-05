@@ -6,9 +6,8 @@
 1. Run `npm install`
 1. Run `nvm install v8.0.0`
 1. Create a `.env` file in the root of this repository (`touch .env`)
-1. Create a directory somewhere on your computer (not in this repository) to store the results of
-of automated tests
-    - For example, `mkdir ~/< wherever >/test-results`
+1. Create a directory somewhere on your computer (not in this repository) to store the results of automated tests
+    - For example, `mkdir ~/<path-of-your-choosing>/test-results`
 1. Get a [Github API token](https://git.generalassemb.ly/settings/tokens/)
     - Click "Generate new token"
     - Enter your password if prompted
@@ -19,7 +18,7 @@ of automated tests
 1. Edit the `.env` to match the format below. Note that there are no spaces between the variable name, the equals sign, or the value.
 ```
 GHUSER=caleb-pearce
-GHTOKEN=< token goes here >
+GHTOKEN=<token goes here>
 DEVELOPERS=./csv/test.csv
 COMMENT=Nice job!
 RESULTSDIR=/home/caleb/code/scripts/test-results
@@ -36,10 +35,10 @@ test results
 
 1. Determine whether the repo you're evaluating has tests.
 1. If it does:
-    - Run those tests with `npm run tests < name-of-repo >`
+    - Run those tests with `npm run tests <name-of-repo>`
     - This will save the results of those tests to
-    `< $RESULTSDIR >/< cohort >/< repo >/< developer >.txt`. You don't need to interact with them there to see their score, but you can look there if you need to know which tests failed.
-1. Run the evaluation script with `npm run eval < name-of-repo >`
+    `<$RESULTSDIR>/<cohort>/<repo>/<developer>.txt`. You don't need to interact with them there to see their score, but you can look there if you need to know which tests failed.
+1. Run the evaluation script with `npm run eval <name-of-repo>`
     - For each pull request, you'll see their GHE handle, the PR body (the comment they add when opening the PR), test results (if there are tests),
     and the diff between their response and the blank study/diagnostic/etc.
     - You'll first be prompted on
@@ -60,7 +59,7 @@ test results
 1. For convenience, and because they share some code, this repo also contains a
 copy of Antony Donovan's pull request script, found
 [here](https://git.generalassemb.ly/wdi-bos-faculty/pull-requests). You can run
-that script with `npm run pulls < name-of-repo >`. It uses the same `.env` and
+that script with `npm run pulls <name-of-repo>`. It uses the same `.env` and
 CSV directory.
 
 
