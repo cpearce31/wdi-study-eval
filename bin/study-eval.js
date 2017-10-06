@@ -75,6 +75,36 @@ const getPulls = function (devs) {
   })
 }
 
+const processDiff = diff => {
+  let lines = diff.split(/\r?\n/)
+  let packageLockStart = null
+  let packageLockLength = null
+  for (let i = 0; i < lines.length; i++) {
+    if (!packageLockStart && /package-lock/.test(lines[i])) {
+      packageLockStart = i
+    } else if (packageLockStart !== null &&
+               /diff --git/.test(lines[i]) &&
+               !packageLockLength) {
+      packageLockLength = i - packageLockStart
+    }
+  }
+  if (packageLockStart !== null && packageLockLength) {
+    lines.splice(packageLockStart, packageLockLength)
+  }
+  lines = lines.map(line => {
+    if (line[0] === '+' && /\?/.test(line)) {
+      return line.bgCyan.black
+    } else if (line[0] === '-') {
+      return line.red
+    } else if (line[0] === '+') {
+      return line.green
+    } else {
+      return line
+    }
+  })
+  return lines.join('\n')
+}
+
 const getDiffs = function (pulls) {
   if (pulls.length === 0) {
     console.log('No pull requests found for the developers in that CSV.')
@@ -94,11 +124,7 @@ const getDiffs = function (pulls) {
           res.on('end', () => reject(result))
         } else {
           res.on('end', () => {
-            pull.diff = result.split(/\r?\n/)
-                              .filter(line => line[0] === '+' ||
-                                              line[0] === '-')
-                              .map(line => line[0] === '-' ? line.red : line.green)
-                              .join('\n')
+            pull.diff = processDiff(result)
             resolve(pull)
           })
         }
@@ -110,7 +136,7 @@ const getDiffs = function (pulls) {
 const badPulls = []
 
 const printPRInfo = (pull, pulls, i) => {
-  console.reset()
+  // console.reset()
   console.log(`=== PR ${i + 1}/${pulls.length} ===\n`.red)
   console.log('GHE Username:'.blue, pull.github)
   console.log('PR Body:'.blue, pull.body)
@@ -264,7 +290,7 @@ const closePulls = pulls => {
 }
 
 const displayFinalOutput = pulls => {
-  // console.reset()
+  // // console.reset()
   console.log('=== STUFF TO DO BY HAND ===\n'.red)
   console.log('The following pulls will need to be addressed manually: \n')
   if (badPulls.length > 0) {
