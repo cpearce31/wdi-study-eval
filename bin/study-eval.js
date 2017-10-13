@@ -136,7 +136,7 @@ const getDiffs = function (pulls) {
 const badPulls = []
 
 const printPRInfo = (pull, pulls, i) => {
-  // console.reset()
+  console.reset()
   console.log(`=== PR ${i + 1}/${pulls.length} ===\n`.red)
   console.log('GHE Username:'.blue, pull.github)
   console.log('PR Body:'.blue, pull.body)
@@ -290,7 +290,7 @@ const closePulls = pulls => {
 }
 
 const displayFinalOutput = pulls => {
-  // // console.reset()
+  console.reset()
   console.log('=== STUFF TO DO BY HAND ===\n'.red)
   console.log('The following pulls will need to be addressed manually: \n')
   if (badPulls.length > 0) {
