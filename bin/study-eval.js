@@ -91,11 +91,10 @@ const processDiff = diff => {
   if (packageLockStart !== null && packageLockLength) {
     lines.splice(packageLockStart, packageLockLength)
   }
+  lines = lines.filter(line => line[0] !== '-')
   lines = lines.map(line => {
     if (line[0] === '+' && /\?/.test(line)) {
       return line.bgCyan.black
-    } else if (line[0] === '-') {
-      return line.red
     } else if (line[0] === '+') {
       return line.green
     } else {
